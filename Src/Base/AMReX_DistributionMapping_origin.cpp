@@ -1263,198 +1263,14 @@ Distribute (const std::vector<SFCToken>&     tokens,
     BL_ASSERT(cnt == tokens.size());
 #endif
 }
-
 }
-
-bool 
-DistributionMapping::isPartitionPossible(std::vector<long> wgts, int n, int number_of_ranks, long maxWeight){
-        
-    long long currWeight=0, worker=1;
-    for(int i=0;i<n;i++)
-    {
-        if(currWeight+wgts[i]>maxWeight){
-            worker++;
-            
-            if(worker>number_of_ranks) return false;
-            currWeight=wgts[i];
-        }
-        else currWeight+=wgts[i];
-    }
-    return true;   
-}
-long 
-DistributionMapping::minWeight(std::vector<long> wgts, int n, int k)
-{
-    // code here
-    // return minimum time
-    long long sum=0,max=wgts[0];
-   // if(k>n) return -1;
-    for(int i=0;i<n;i++){
-        sum+=wgts[i];
-        if(max<wgts[i]){
-            max=wgts[i];
-        }
-    }
-    long long h=sum,l=max,mid,res;
-    while(l<=h){
-        mid=l+(h-l)/2;
-        if(isPartitionPossible(wgts,n,k,mid)){
-            res=mid;
-            h=mid-1;
-        }
-        else{
-            l=mid+1;
-        }
-    }
-    return res;
-    
-}
-
-long DistributionMapping::sum(std::vector<long> wgts, int from, int to) 
-{ 
-	long int total = 0; 
-	for (int i = from; i <= to; i++) 
-		total += wgts[i]; 
-	
-	return total; 
-} 
-
-
-// driver function 
-std::vector< std::vector<int> >
-DistributionMapping::painterPartition(const amrex::BoxArray&   boxes,std::vector<long> wgts,int number_of_ranks) 
-        { 
-
-        BL_PROFILE("painterPartition()");
-        std::vector<long> sorted_wgts;
-
-        const int N = boxes.size();
-        std::vector<SFCToken> tokens;
-        tokens.reserve(N);
-        for (int i = 0; i < N; ++i)
-        {
-            const amrex::Box& bx = boxes[i];
-            tokens.push_back(makeSFCToken(i, bx.smallEnd()));
-        }
-
-        std::sort(tokens.begin(), tokens.end(), SFCToken::Compare());
-        for (int i = 0; i < N; ++i)
-            {
-                // amrex::Print() << tokens[i].m_box << " \n";
-                sorted_wgts.push_back(wgts[tokens[i].m_box]);
-                // amrex::Print() << tokens[i].m_morton[0] << " " << tokens[i].m_morton[1] << " " << tokens[i].m_morton[2] << " \n";
-            }
-
-        long int n=wgts.size();
-
-
-        long maxVal=minWeight(sorted_wgts,n,number_of_ranks);
-        //cout << maxVal << endl; 
-        std::vector< std::vector<int> > vec(number_of_ranks);
-        std::vector<int> sorted_result(wgts.size());
-        int index;
-
-
-        amrex::Real  s_painter_eff=0.0;
-        bool sort=true;
-        int nteams=number_of_ranks;
-        bool  flag_verbose_mapper=true;
-        for(int i=0,j=i, p=0;p<number_of_ranks && j<n;p++){
-            
-            long val=sum(sorted_wgts,i,j);
-            while(maxVal>val && j<n){
-                j++;
-                val=sum(sorted_wgts,i,j);
-            }
-            // cout<<"i= "<<i<<" j= "<<j<<endl;
-            if(maxVal==val){
-                for(int a=i;a<=j;a++){
-                    index=a;
-                    vec[p].push_back(index);
-                    //cout<<"p="<<p<<endl;
-                    sorted_result[index]=p;
-                }
-                j++;
-                i=j;
-            }
-            else{
-                for(int a=i;a<j;a++){
-                    index=a;
-                    vec[p].push_back(index);
-                // cout<<"p="<<p<<endl;
-                    sorted_result[index]=p;
-                }
-                i=j;
-            }
-
-        }
-
-        std::vector<int> result(wgts.size());
-        for (int i = 0; i < N; ++i)
-            {
-                // amrex::Print() << tokens[i].m_box << " \n";
-                //sorted_wgts.push_back(wgts[tokens[i].m_box]);
-                result[tokens[i].m_box] = sorted_result[i];
-                // amrex::Print() << tokens[i].m_morton[0] << " " << tokens[i].m_morton[1] << " " << tokens[i].m_morton[2] << " \n";
-            }
-
-
-        // std::vector<LIpair> LIpairV;
-
-        // LIpairV.reserve(nteams);
-
-        // for (int i = 0; i < nteams; ++i)
-        // {
-        //     amrex::Long wgt = 0;
-        //     const std::vector<int>& vi = vec[i];
-        //     for (int j = 0, M = vi.size(); j < M; ++j)
-        //         {   
-        //             // amrex::Print()<<"vi["<<j<<"]="<<vi[j]<<endl;
-        //             wgt += sorted_wgts[vi[j]];}
-
-        //     LIpairV.push_back(LIpair(wgt,i));
-        // }
-        // if (sort) Sort(LIpairV, true);
-
-        // // if (flag_verbose_mapper) {
-        // //     for (const auto &p : LIpairV) {
-        // //         amrex::Print() << "  Bucket " << p.second << " contains " << p.first << std::endl;
-        // //     }
-        // // }
-
-        // if (s_painter_eff || flag_verbose_mapper)
-        // {
-        //     amrex::Real sum_wgt = 0, max_wgt = 0;
-        //     for (int i = 0; i < nteams; ++i)
-        //     {
-        //         const amrex::Long W = LIpairV[i].first;
-        //         if (W > max_wgt) max_wgt = W;
-        //         sum_wgt += W;
-        //     }
-        //     amrex::Real efficiency = (sum_wgt/(nteams*max_wgt));
-        //     if (s_painter_eff) s_painter_eff = efficiency;
-
-        //     if (flag_verbose_mapper)
-        //     {
-
-        //         //amrex::Print()<<__LINE__<<std::endl;
-        //         amrex::Print() << "SFC+painterPartition efficiency: " << efficiency << '\n';
-        //     }
-        // }
-        
-        return vec;
-} 
-
-
 
 void
 DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                                           const std::vector<Long>& wgts,
                                           int                   /*   nprocs */,
                                           bool                     sort,
-                                          Real*                    eff
-                                         // bool painter=false
-                                         )
+                                          Real*                    eff)
 {
     if (flag_verbose_mapper) {
         Print() << "DM: SFCProcessorMapDoIt called..." << '\n';
@@ -1507,17 +1323,8 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     volperteam /= static_cast<Real>(nteams);
 
     std::vector< std::vector<int> > vec(nteams);
-    bool painter = true;
-    if (painter)
-    {
-        int number_of_ranks = nprocs;
-        vec = painterPartition(boxes, wgts, number_of_ranks);
-    }
-    else{
-        Distribute(tokens,wgts,nteams,volperteam,vec);
-    }
 
-   
+    Distribute(tokens,wgts,nteams,volperteam,vec);
 
     // vec has a size of nteams and vec[] holds a vector of box ids.
 

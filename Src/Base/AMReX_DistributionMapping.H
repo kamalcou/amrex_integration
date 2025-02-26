@@ -329,11 +329,29 @@ private:
                        int                      nmax=std::numeric_limits<int>::max(),
                        bool                     sort=true);
 
-    void SFCProcessorMapDoIt (const BoxArray&          boxes,
-                              const std::vector<Long>& wgts,
-                              int                      nprocs,
-                              bool                     sort=true,
-                              Real*                    efficiency=nullptr);
+    bool
+    isPartitionPossible(std::vector<long> wgts,
+                        int n,
+                        int number_of_ranks,
+                        long maxWeight);
+    long
+    minWeight(std::vector<long> wgts, 
+              int n, 
+              int k);
+    long 
+    sum(std::vector<long> wgts, int from, int to);
+    std::vector< std::vector<int> >
+    painterPartition(const amrex::BoxArray &boxes,
+                     std::vector<long> wgts,
+                     int number_of_ranks);
+
+    void SFCProcessorMapDoIt(const BoxArray &boxes,
+                             const std::vector<Long> &wgts,
+                             int nprocs,
+                             bool sort = true,
+                             Real *efficiency = nullptr
+                             // bool painter = false);
+                        );
 
     void RRSFCDoIt           (const BoxArray&          boxes,
                               int                      nprocs);

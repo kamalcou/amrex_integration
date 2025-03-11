@@ -1453,7 +1453,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
                                           int                   /*   nprocs */,
                                           bool                     sort,
                                           Real*                    eff
-                                         // bool painter=false
+                                          , const bool painter
                                          )
 {
     if (flag_verbose_mapper) {
@@ -1507,7 +1507,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     volperteam /= static_cast<Real>(nteams);
 
     std::vector< std::vector<int> > vec(nteams);
-    bool painter = true;
+    //bool painter = false;
     if (painter)
     {
         int number_of_ranks = nprocs;

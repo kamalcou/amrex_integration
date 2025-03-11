@@ -350,8 +350,8 @@ private:
                              int nprocs,
                              bool sort = true,
                              Real *efficiency = nullptr
-                             // bool painter = false);
-                        );
+                             , bool painter = false);
+                        
 
     void RRSFCDoIt           (const BoxArray&          boxes,
                               int                      nprocs);
